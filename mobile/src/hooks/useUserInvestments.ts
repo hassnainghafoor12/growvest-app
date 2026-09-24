@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { realtimeSync } from '../lib/realtimeSync';
 import { Investment } from '../types/database.types';
 
 export function useUserInvestments() {
@@ -33,15 +34,16 @@ export function useUserInvestments() {
       return (data || []) as Investment[];
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60,
   });
 
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase
-      .channel(`realtime-user-investments-${user.id}`)
-      .on(
+    const channelName = `realtime-user-investments-${user.id}`;
+
+    realtimeSync.getOrCreateChannel(channelName, (channel) => {
+      channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -49,14 +51,34 @@ export function useUserInvestments() {
           table: 'investments',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['user-investments', user.id] });
+        (payload) => {
+          if (!payload) return;
+
+          // Directly update the React Query Cache for investments
+          queryClient.setQueryData<Investment[]>(['user-investments', user.id], (old = []) => {
+            if (payload.eventType === 'INSERT') {
+              const newInv = payload.new as Investment;
+              return [newInv, ...old.filter((i) => i.id !== newInv.id)];
+            }
+
+            if (payload.eventType === 'UPDATE') {
+              const updatedInv = payload.new as Investment;
+              return old.map((i) => (i.id === updatedInv.id ? { ...i, ...updatedInv } : i));
+            }
+
+            if (payload.eventType === 'DELETE') {
+              const deletedId = (payload.old as { id: string })?.id;
+              return old.filter((i) => i.id !== deletedId);
+            }
+
+            return old;
+          });
         }
-      )
-      .subscribe();
+      );
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeSync.releaseChannel(channelName);
     };
   }, [user?.id, queryClient]);
 

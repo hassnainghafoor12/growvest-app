@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { realtimeSync } from '../lib/realtimeSync';
 import { Wallet } from '../types/database.types';
 
 export function useWallet() {
@@ -19,14 +20,13 @@ export function useWallet() {
         .single();
 
       if (error) {
-        // If wallet doesn't exist yet, return null
         if (error.code === 'PGRST116') return null;
         throw error;
       }
       return data as Wallet;
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 30,
   });
 
   // Supabase Realtime subscription for live wallet balance updates
@@ -34,9 +34,9 @@ export function useWallet() {
     if (!user?.id) return;
 
     const channelName = `realtime-wallet-${user.id}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
+
+    realtimeSync.getOrCreateChannel(channelName, (channel) => {
+      channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -45,15 +45,16 @@ export function useWallet() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          if (payload.new) {
+          if (payload?.new) {
+            // Direct React Query Cache update: only the wallet values re-render
             queryClient.setQueryData(['wallet', user.id], payload.new);
           }
         }
-      )
-      .subscribe();
+      );
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeSync.releaseChannel(channelName);
     };
   }, [user?.id, queryClient]);
 

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { realtimeSync } from '../lib/realtimeSync';
 
 export function useNotificationsCount() {
   const { user } = useAuth();
@@ -27,19 +28,39 @@ export function useNotificationsCount() {
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase
-      .channel(`realtime-notifications-count-${user.id}`)
-      .on(
+    const channelName = `realtime-notifications-count-${user.id}`;
+
+    realtimeSync.getOrCreateChannel(channelName, (channel) => {
+      channel.on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['notifications-unread-count', user.id] });
+        (payload) => {
+          if (!payload) return;
+
+          // Directly update the React Query Cache for notification count
+          queryClient.setQueryData<number>(['notifications-unread-count', user.id], (oldCount = 0) => {
+            if (payload.eventType === 'INSERT') {
+              const item = payload.new as any;
+              if ((item.user_id === user.id || item.user_id === null) && !item.is_read) {
+                return oldCount + 1;
+              }
+            }
+
+            if (payload.eventType === 'UPDATE') {
+              const item = payload.new as any;
+              if (item.is_read) {
+                return Math.max(0, oldCount - 1);
+              }
+            }
+
+            return oldCount;
+          });
         }
-      )
-      .subscribe();
+      );
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      realtimeSync.releaseChannel(channelName);
     };
   }, [user?.id, queryClient]);
 
