@@ -72,6 +72,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // 3. Supabase Realtime subscription for live user profile changes (KYC approval, role changes, status updates)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channelName = `realtime-profile-${user.id}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            setProfile(payload.new as Profile);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const refreshProfile = async () => {
     if (user?.id) {
       await fetchProfile(user.id);
