@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import {
   LayoutDashboard,
@@ -14,6 +15,8 @@ import {
   LogOut,
   Shield,
   Layers,
+  Image as ImageIcon,
+  History,
   Loader2,
 } from 'lucide-react';
 
@@ -23,6 +26,7 @@ export default function ProtectedAdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { session, profile, isAdmin, isLoading, signOutAdmin } = useAdminAuth();
 
   useEffect(() => {
@@ -62,6 +66,18 @@ export default function ProtectedAdminLayout({
     router.replace('/login');
   };
 
+  const navItems = [
+    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/users', label: 'User Management', icon: Users },
+    { href: '/admin/plans', label: 'Investment Plans', icon: TrendingUp },
+    { href: '/admin/transactions', label: 'Transactions', icon: CreditCard },
+    { href: '/admin/kyc', label: 'KYC Verifications', icon: FileCheck2 },
+    { href: '/admin/banners', label: 'Banners & Content', icon: ImageIcon },
+    { href: '/admin/notifications', label: 'Notifications', icon: Bell },
+    { href: '/admin/settings', label: 'System Settings', icon: Sliders },
+    { href: '/admin/audit', label: 'Audit Logs', icon: History },
+  ];
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#070B14' }}>
       {/* Sidebar */}
@@ -96,34 +112,32 @@ export default function ProtectedAdminLayout({
 
         {/* Navigation Items */}
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <a href="/admin" style={navItemStyleActive}>
-            <LayoutDashboard size={18} />
-            <span>Dashboard</span>
-          </a>
-          <a href="/admin/users" style={navItemStyle}>
-            <Users size={18} />
-            <span>User Management</span>
-          </a>
-          <a href="/admin/plans" style={navItemStyle}>
-            <TrendingUp size={18} />
-            <span>Investment Plans</span>
-          </a>
-          <a href="/admin/transactions" style={navItemStyle}>
-            <CreditCard size={18} />
-            <span>Transactions</span>
-          </a>
-          <a href="/admin/kyc" style={navItemStyle}>
-            <FileCheck2 size={18} />
-            <span>KYC Verifications</span>
-          </a>
-          <a href="/admin/notifications" style={navItemStyle}>
-            <Bell size={18} />
-            <span>Notifications</span>
-          </a>
-          <a href="/admin/settings" style={navItemStyle}>
-            <Sliders size={18} />
-            <span>System Settings</span>
-          </a>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  color: isActive ? '#070B14' : '#94A3B8',
+                  backgroundColor: isActive ? '#10B981' : 'transparent',
+                  textDecoration: 'none',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={18} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* User Footer & Logout */}
@@ -188,22 +202,3 @@ export default function ProtectedAdminLayout({
     </div>
   );
 }
-
-const navItemStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  color: '#94A3B8',
-  textDecoration: 'none',
-  fontSize: '13px',
-  fontWeight: '600',
-  transition: 'all 0.15s ease',
-};
-
-const navItemStyleActive: React.CSSProperties = {
-  ...navItemStyle,
-  backgroundColor: '#10B981',
-  color: '#070B14',
-};
