@@ -68,8 +68,32 @@ serve(async (req: Request) => {
       p_admin_notes: admin_notes || null,
     });
 
-    if (rpcError) {
-      throw rpcError;
+    // Fetch transaction details for push notification
+    const { data: tx } = await supabase
+      .from("transactions")
+      .select("user_id, type, amount, currency")
+      .eq("id", transaction_id)
+      .single();
+
+    if (tx) {
+      const title = action === "approve" ? "Transaction Approved!" : "Transaction Declined";
+      const body = action === "approve"
+        ? `Your ${tx.type} of ${tx.currency} ${Number(tx.amount).toFixed(2)} has been approved.`
+        : `Your ${tx.type} request was declined. ${admin_notes || ""}`.trim();
+
+      try {
+        await supabase.functions.invoke("send-push-notification", {
+          body: {
+            user_id: tx.user_id,
+            title,
+            body,
+            notification_type: "transaction_status",
+            data: { screen: "wallet", transaction_id, status: newStatus },
+          },
+        });
+      } catch (pushErr) {
+        console.warn("Push dispatch warning in approve-transaction:", pushErr);
+      }
     }
 
     return new Response(

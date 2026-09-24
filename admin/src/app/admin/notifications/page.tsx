@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { dispatchAdminPushNotification } from '../../../lib/pushDispatcher';
 import {
   Bell,
   Send,
@@ -114,15 +115,18 @@ export default function AdminNotificationsPage() {
     try {
       const targetUserId = isBroadcast ? null : selectedUserId;
 
-      const { error } = await supabase.from('notifications').insert({
-        user_id: targetUserId,
+      // Dispatch through Supabase Edge Function to deliver real Android push notifications
+      const result = await dispatchAdminPushNotification({
+        userId: targetUserId,
         title: title.trim(),
         body: body.trim(),
-        type: notificationType as any,
-        data: { broadcast: isBroadcast },
+        notificationType,
+        data: { broadcast: isBroadcast, screen: 'wallet' },
       });
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to dispatch push notification');
+      }
 
       setModalOpen(false);
       setTitle('');

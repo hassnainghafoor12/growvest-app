@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { dispatchAdminPushNotification } from '../../../lib/pushDispatcher';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import {
   FileCheck2,
@@ -121,13 +122,13 @@ export default function AdminKycPage() {
 
       if (profErr) throw profErr;
 
-      // 3. Send Notification to mobile app
-      await supabase.from('notifications').insert({
-        user_id: submission.user_id,
+      // 3. Dispatch Android Push Notification: Admin -> Supabase -> Edge Function -> Push Service -> Android Device
+      await dispatchAdminPushNotification({
+        userId: submission.user_id,
         title: 'KYC Verification Approved!',
         body: 'Your identity documents have been approved. All investment & withdrawal limits are unlocked.',
-        type: 'kyc_alert',
-        data: { kyc_id: submission.id, status: 'verified' },
+        notificationType: 'kyc_alert',
+        data: { screen: 'profile', kyc_id: submission.id, status: 'verified' },
       });
 
       // Update local state
@@ -169,13 +170,13 @@ export default function AdminKycPage() {
 
       if (profErr) throw profErr;
 
-      // 3. Send Notification to mobile app
-      await supabase.from('notifications').insert({
-        user_id: rejectModalKyc.user_id,
+      // 3. Dispatch Android Push Notification: Admin -> Supabase -> Edge Function -> Push Service -> Android Device
+      await dispatchAdminPushNotification({
+        userId: rejectModalKyc.user_id,
         title: 'KYC Document Rejected',
         body: `Your identity verification was rejected: ${rejectReason || 'Document invalid'}. Please resubmit.`,
-        type: 'kyc_alert',
-        data: { kyc_id: rejectModalKyc.id, status: 'rejected', reason: rejectReason },
+        notificationType: 'kyc_alert',
+        data: { screen: 'profile', kyc_id: rejectModalKyc.id, status: 'rejected', reason: rejectReason },
       });
 
       setRejectModalKyc(null);

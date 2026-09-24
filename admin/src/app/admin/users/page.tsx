@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { dispatchAdminPushNotification } from '../../../lib/pushDispatcher';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import {
   Users,
@@ -128,6 +129,25 @@ export default function AdminUsersPage() {
         previous_data: { role: editingUser.role, status: editingUser.status },
         new_data: { role: newRole, status: newStatus },
       });
+
+      // Dispatch Android Push Notification: Admin -> Supabase -> Edge Function -> Push Service -> Android Device
+      if (editingUser.status !== newStatus) {
+        await dispatchAdminPushNotification({
+          userId: editingUser.id,
+          title: 'Growvest Status Update',
+          body: `Your Growvest status has changed. Your account status is now ${newStatus.replace('_', ' ')}.`,
+          notificationType: 'account_status',
+          data: { screen: 'profile', status: newStatus },
+        });
+      } else if (editingUser.role !== newRole) {
+        await dispatchAdminPushNotification({
+          userId: editingUser.id,
+          title: 'Growvest Account Update',
+          body: `Your Growvest role has been updated to ${newRole.replace('_', ' ')}.`,
+          notificationType: 'account_status',
+          data: { screen: 'profile', role: newRole },
+        });
+      }
 
       setEditingUser(null);
       fetchUsers();

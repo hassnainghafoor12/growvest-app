@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { dispatchAdminPushNotification } from '../../../lib/pushDispatcher';
 import { useAdminAuth } from '../../../context/AdminAuthContext';
 import {
   CreditCard,
@@ -147,13 +148,13 @@ export default function AdminTransactionsPage() {
 
       if (txErr) throw txErr;
 
-      // 3. Notify User
-      await supabase.from('notifications').insert({
-        user_id: tx.user_id,
+      // 3. Dispatch Android Push Notification: Admin -> Supabase -> Edge Function -> Push Service -> Android Device
+      await dispatchAdminPushNotification({
+        userId: tx.user_id,
         title: 'Transaction Approved!',
         body: `Your ${tx.type} of ${tx.currency} ${Number(tx.amount).toFixed(2)} has been approved.`,
-        type: 'transaction_status',
-        data: { transaction_id: tx.id, status: 'approved' },
+        notificationType: 'transaction_status',
+        data: { screen: 'wallet', transaction_id: tx.id, status: 'approved' },
       });
 
       // 4. Audit Log
@@ -214,13 +215,13 @@ export default function AdminTransactionsPage() {
 
       if (txErr) throw txErr;
 
-      // Notify User
-      await supabase.from('notifications').insert({
-        user_id: rejectModalTx.user_id,
+      // Dispatch Android Push Notification: Admin -> Supabase -> Edge Function -> Push Service -> Android Device
+      await dispatchAdminPushNotification({
+        userId: rejectModalTx.user_id,
         title: 'Transaction Declined',
         body: `Your ${rejectModalTx.type} request was declined: ${rejectNotes || 'Invalid payment verification'}.`,
-        type: 'transaction_status',
-        data: { transaction_id: rejectModalTx.id, status: 'rejected' },
+        notificationType: 'transaction_status',
+        data: { screen: 'wallet', transaction_id: rejectModalTx.id, status: 'rejected' },
       });
 
       setRejectModalTx(null);

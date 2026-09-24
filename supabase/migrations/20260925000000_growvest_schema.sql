@@ -980,6 +980,18 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.investment_plans;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.kyc_verifications;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.system_settings;
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 

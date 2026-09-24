@@ -136,14 +136,23 @@ serve(async (req: Request) => {
           },
         });
 
-        // Notify user
-        await supabase.from("notifications").insert({
-          user_id: inv.user_id,
-          title: "Investment Matured!",
-          body: `Your investment in ${plan?.title || "Plan"} has matured. USD ${totalPayout.toFixed(2)} has been credited to your wallet.`,
-          type: "investment_update",
-          data: { investment_id: inv.id },
-        });
+        // Notify user & Dispatch Android Push Notification
+        const notifTitle = "Investment Matured!";
+        const notifBody = `Your investment in ${plan?.title || "Plan"} has matured. USD ${totalPayout.toFixed(2)} has been credited to your wallet.`;
+        
+        try {
+          await supabase.functions.invoke("send-push-notification", {
+            body: {
+              user_id: inv.user_id,
+              title: notifTitle,
+              body: notifBody,
+              notification_type: "investment_update",
+              data: { screen: "investments", investment_id: inv.id, wallet_id: wallet.id },
+            },
+          });
+        } catch (pushErr) {
+          console.warn("Push dispatch warning in process-profit-payouts:", pushErr);
+        }
 
         processedCount++;
         results.push({ investment_id: inv.id, user_id: inv.user_id, totalPayout });
