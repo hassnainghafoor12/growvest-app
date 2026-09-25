@@ -24,6 +24,14 @@ jobs:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
 
+      - name: 🔑 Verify EXPO_TOKEN Secret
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error title=Missing EXPO_TOKEN Secret::The 'EXPO_TOKEN' secret is missing or empty in your GitHub repository secrets. Please follow the instructions below to add it."
+            exit 1
+          fi
+          echo "✅ EXPO_TOKEN secret detected."
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
