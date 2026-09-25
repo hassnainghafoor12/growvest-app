@@ -18,7 +18,9 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://demo-project.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key",
+        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx3072m",
+        "_JAVA_OPTIONS": "-Xmx3072m"
       }
     },
     "production": {
@@ -28,7 +30,9 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://demo-project.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key",
+        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx3072m",
+        "_JAVA_OPTIONS": "-Xmx3072m"
       }
     }
   },
